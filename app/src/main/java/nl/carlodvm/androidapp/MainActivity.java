@@ -8,6 +8,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.widget.Button;
 import android.widget.Toast;
 
 import com.google.ar.core.AugmentedImage;
@@ -20,11 +21,14 @@ import com.google.ar.core.exceptions.UnavailableArcoreNotInstalledException;
 import com.google.ar.core.exceptions.UnavailableSdkTooOldException;
 import com.google.ar.sceneform.FrameTime;
 
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
 import nl.carlodvm.androidapp.Animation.ScalingNode;
+import nl.carlodvm.androidapp.Core.FileManager;
 import nl.carlodvm.androidapp.Core.LocationManager;
 
 public class MainActivity extends AppCompatActivity {
@@ -33,8 +37,15 @@ public class MainActivity extends AppCompatActivity {
 
     private AugmentedImageFragment arFragment;
     private LocationManager locationManager;
+    private FileManager fileManager;
 
     private ScalingNode arrow;
+
+    private Button captureGPSButton1;
+    private Button captureGPSButton2;
+
+    private Location loc1;
+    private Location loc2;
 
     private final Map<AugmentedImage, AugmentedNode> augmentedImageMap = new HashMap<>();
 
@@ -48,6 +59,9 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_ux);
 
         locationManager = new LocationManager(this, this);
+        fileManager = new FileManager(this);
+
+        initButtons();
 
         arrow = new ScalingNode(this, "arrow.sfb");
         arFragment = (AugmentedImageFragment) getSupportFragmentManager().findFragmentById(R.id.ux_fragment);
@@ -69,6 +83,36 @@ public class MainActivity extends AppCompatActivity {
         arFragment.getSessionConfiguration(session);
     }
 
+    private void initButtons() {
+        captureGPSButton1 = findViewById(R.id.captureGPSButton1);
+        captureGPSButton2 = findViewById(R.id.captureGPSButton2);
+
+        captureGPSButton1.setEnabled(false);
+        captureGPSButton2.setEnabled(false);
+
+        captureGPSButton1.setOnClickListener(view -> {
+            loc1 = locationManager.GetModelGPSLocation(arrow);
+            if (loc1 != null) {
+                String locationString = loc1.toString();
+                Toast.makeText(this, locationString, Toast.LENGTH_SHORT).show();
+                Log.e(TAG, locationString);
+            }
+        });
+
+        captureGPSButton2.setOnClickListener(view -> {
+            loc2 = locationManager.GetModelGPSLocation(arrow);
+            if (loc2 != null) {
+                String locationString = loc2.toString();
+                //Toast.makeText(this, locationString, Toast.LENGTH_LONG).show();
+                Log.e(TAG, locationString);
+                NumberFormat formatter = new DecimalFormat("#0,00");
+                Log.e(TAG, "Distance: " + LocationManager.getDistanceBetween(loc1, loc2) +  "m") ;
+                Toast.makeText(this, "Distance: " + LocationManager.getDistanceBetween(loc1, loc2) +  "m", Toast.LENGTH_LONG).show();
+                fileManager.getFileOutputStream("");
+            }
+        });
+    }
+
     private void onUpdateFrame(FrameTime frameTime) {
         Frame frame = arFragment.getArSceneView().getArFrame();
 
@@ -83,24 +127,35 @@ public class MainActivity extends AppCompatActivity {
                 case PAUSED:
                     String text = "Detected Image " + augmentedImage.getIndex();
                     Toast.makeText(this, text, Toast.LENGTH_LONG).show();
+
                     break;
                 case TRACKING:
                     if (!augmentedImageMap.containsKey(augmentedImage)) {
+                        if(augmentedImage.getIndex() == 0){
+                            captureGPSButton1.setEnabled(true);
+                        }
+
+                        if(augmentedImage.getIndex() == 1){
+                            captureGPSButton2.setEnabled(true);
+                        }
 
                         augmentedImageMap.put(augmentedImage, arrow);
 
                         arrow.renderNode(augmentedImage, arFragment);
 
-                        Location loc = locationManager.GetModelGPSLocation(arrow);
-                        if (loc != null) {
-                            String locationString = loc.toString();
-                            Toast.makeText(this, locationString, Toast.LENGTH_LONG).show();
-                            Log.e(TAG, locationString);
-                        }
                     }
                     break;
                 case STOPPED:
                     augmentedImageMap.remove(augmentedImage);
+
+                    if(augmentedImage.getIndex() == 0){
+                        captureGPSButton1.setEnabled(false);
+                    }
+
+                    if(augmentedImage.getIndex() == 1){
+                        captureGPSButton2.setEnabled(false);
+                    }
+
                     break;
             }
         }

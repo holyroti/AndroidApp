@@ -8,3 +8,6 @@
 /build
 /captures
 .externalNativeBuild
+*.sfb
+/.idea/caches/build_file_checksums.ser
+/app/src/main/assets/assets-imglist.txt

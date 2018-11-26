@@ -17,7 +17,7 @@ material {
         "position",
         "uv0"
     ],
-    "shadingModel" : "unlit",
+    "shadingModel" : "lit",
     // Blending is "masked" instead of "transparent" so that the shadows account for the
     // transparent regions of the video instead of just the shape of the mesh.
     "blending" : "transparent",
@@ -31,10 +31,14 @@ fragment {
 
         prepareMaterial(material);
 
+        //float twoPI = 2.0 * PI;
         float alpha = materialParams.alphaKey;
         vec3 color = materialParams.keyColor.rgb;
 
+        vec3 normalizedPosition = getWorldPosition();
+        //float horPerc = (normalizedPosition.x + 1.0) / 2.0 ;
         material.baseColor.rgb = color;
+        //material.baseColor.rgb *= (horPerc - smoothstep(luminance(color) , luminance(color) * 4.0, sin(radians(getTime() * 10.0) * 7.0)));
         material.baseColor.a = alpha;
 
     }

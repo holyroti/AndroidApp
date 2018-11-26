@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">AndroidApp</string>
+    <string name="GPSCaptureButton2">Capture GPS 2</string>
+    <string name="GPSCaptureButton1">Capture GPS 1</string>
 </resources>
