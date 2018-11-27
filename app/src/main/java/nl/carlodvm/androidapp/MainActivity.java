@@ -10,36 +10,32 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.widget.Button;
 import android.widget.Toast;
-
-import com.google.ar.core.AugmentedImage;
-import com.google.ar.core.Config;
-import com.google.ar.core.Frame;
-import com.google.ar.core.Session;
-import com.google.ar.core.TrackingState;
+import com.google.ar.core.*;
 import com.google.ar.core.exceptions.UnavailableApkTooOldException;
 import com.google.ar.core.exceptions.UnavailableArcoreNotInstalledException;
 import com.google.ar.core.exceptions.UnavailableSdkTooOldException;
 import com.google.ar.sceneform.FrameTime;
+import nl.carlodvm.androidapp.Core.FileManager;
+import nl.carlodvm.androidapp.Core.LocationManager;
+import nl.carlodvm.androidapp.DataTransferObject.ImageLocationDTO;
+import nl.carlodvm.androidapp.PermissionHelper.CameraPermissionHelper;
 
-import java.text.DecimalFormat;
-import java.text.NumberFormat;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
-import nl.carlodvm.androidapp.Animation.ScalingNode;
-import nl.carlodvm.androidapp.Core.FileManager;
-import nl.carlodvm.androidapp.Core.LocationManager;
-
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = MainActivity.class.getSimpleName();
     private static final double MIN_OPENGL_VERSION = 3.0;
+    private final String MAPPING_DATA_FILENAME = "mapping.data";
+    private boolean hasCameraPermission = false;
 
     private AugmentedImageFragment arFragment;
     private LocationManager locationManager;
     private FileManager fileManager;
-
-    private ScalingNode arrow;
+    private AugmentedNode arrow;
 
     private Button captureGPSButton1;
     private Button captureGPSButton2;
@@ -56,6 +52,11 @@ public class MainActivity extends AppCompatActivity {
         if (!checkIsSupportedDeviceOrFinish(this))
             return;
 
+        if (!CameraPermissionHelper.hasCameraPermission(this)) {
+            CameraPermissionHelper.launchPermissionSettings(this);
+            finish();
+        }
+
         setContentView(R.layout.activity_ux);
 
         locationManager = new LocationManager(this, this);
@@ -63,7 +64,7 @@ public class MainActivity extends AppCompatActivity {
 
         initButtons();
 
-        arrow = new ScalingNode(this, "arrow.sfb");
+        arrow = new AugmentedNode(this, "arrow.sfb");
         arFragment = (AugmentedImageFragment) getSupportFragmentManager().findFragmentById(R.id.ux_fragment);
         arFragment.getArSceneView().getScene().addOnUpdateListener(this::onUpdateFrame);
         Session session = null;
@@ -105,10 +106,19 @@ public class MainActivity extends AppCompatActivity {
                 String locationString = loc2.toString();
                 //Toast.makeText(this, locationString, Toast.LENGTH_LONG).show();
                 Log.e(TAG, locationString);
-                NumberFormat formatter = new DecimalFormat("#0,00");
-                Log.e(TAG, "Distance: " + LocationManager.getDistanceBetween(loc1, loc2) +  "m") ;
-                Toast.makeText(this, "Distance: " + LocationManager.getDistanceBetween(loc1, loc2) +  "m", Toast.LENGTH_LONG).show();
-                fileManager.getFileOutputStream("");
+                String distance = LocationManager.getDistanceBetween(loc1, loc2) + "m";
+                Log.e(TAG, "Distance: " + distance);
+                Toast.makeText(this, "Distance: " + distance, Toast.LENGTH_LONG).show();
+                if (!fileManager.fileExists(MAPPING_DATA_FILENAME))
+                    fileManager.createFile(MAPPING_DATA_FILENAME);
+                ObjectOutputStream objS = fileManager.getObjectOutputStream(MAPPING_DATA_FILENAME);
+                try {
+                    objS.writeObject(new ImageLocationDTO(loc2, arrow.getImage().getIndex()));
+                    objS.flush();
+                    objS.close();
+                } catch (IOException e) {
+                    Log.e(TAG, "Could not write to file");
+                }
             }
         });
     }
@@ -125,8 +135,8 @@ public class MainActivity extends AppCompatActivity {
         for (AugmentedImage augmentedImage : updatedAugmentedImages) {
             switch (augmentedImage.getTrackingState()) {
                 case PAUSED:
-                    String text = "Detected Image " + augmentedImage.getIndex();
-                    Toast.makeText(this, text, Toast.LENGTH_LONG).show();
+                    //String text = "Detected Image " + augmentedImage.getIndex();
+                    //Toast.makeText(this, text, Toast.LENGTH_LONG).show();
 
                     break;
                 case TRACKING:

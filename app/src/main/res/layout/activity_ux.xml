@@ -1,10 +1,9 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical"
-    tools:context=".MainActivity">
+              xmlns:tools="http://schemas.android.com/tools"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent"
+              android:orientation="vertical"
+              tools:context=".MainActivity">
 
     <fragment
         android:id="@+id/ux_fragment"
@@ -25,20 +24,20 @@
             android:background="@color/colorPrimary">
 
             <Button
-                android:id="@+id/captureGPSButton1"
-                style="@android:style/Widget.Holo.Button"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/GPSCaptureButton1" />
+                    android:id="@+id/captureGPSButton1"
+                    style="@android:style/Widget.Holo.Button"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/GPSCaptureButton1" android:textColor="@android:color/white"/>
 
             <Button
-                android:id="@+id/captureGPSButton2"
-                style="@android:style/Widget.Holo.Button"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/GPSCaptureButton2" />
+                    android:id="@+id/captureGPSButton2"
+                    style="@android:style/Widget.Holo.Button"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/GPSCaptureButton2" android:textColor="@android:color/white"/>
         </TableRow>
     </TableLayout>
 
