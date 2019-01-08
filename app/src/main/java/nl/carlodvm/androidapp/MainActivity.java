@@ -3,12 +3,12 @@ package nl.carlodvm.androidapp;
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.content.Context;
-import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
-import android.widget.Button;
+import android.widget.ArrayAdapter;
+import android.widget.Spinner;
 import android.widget.Toast;
 
 import com.google.ar.core.AugmentedImage;
@@ -21,33 +21,24 @@ import com.google.ar.core.exceptions.UnavailableArcoreNotInstalledException;
 import com.google.ar.core.exceptions.UnavailableSdkTooOldException;
 import com.google.ar.sceneform.FrameTime;
 
-import java.text.DecimalFormat;
-import java.text.NumberFormat;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
 import nl.carlodvm.androidapp.Animation.ScalingNode;
-import nl.carlodvm.androidapp.Core.FileManager;
-import nl.carlodvm.androidapp.Core.LocationManager;
+import nl.carlodvm.androidapp.Core.MapReader;
+import nl.carlodvm.androidapp.Core.World;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = MainActivity.class.getSimpleName();
     private static final double MIN_OPENGL_VERSION = 3.0;
 
     private AugmentedImageFragment arFragment;
-    private LocationManager locationManager;
-    private FileManager fileManager;
-
     private ScalingNode arrow;
 
-    private Button captureGPSButton1;
-    private Button captureGPSButton2;
-
-    private Location loc1;
-    private Location loc2;
-
     private final Map<AugmentedImage, AugmentedNode> augmentedImageMap = new HashMap<>();
+
+    private World world;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,12 +49,9 @@ public class MainActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_ux);
 
-        locationManager = new LocationManager(this, this);
-        fileManager = new FileManager(this);
+        initMapAndDropdown();
 
-        initButtons();
-
-        arrow = new ScalingNode(this, "arrow.sfb");
+        arrow = new ScalingNode(this, "arrow.sfb", 2.5f);
         arFragment = (AugmentedImageFragment) getSupportFragmentManager().findFragmentById(R.id.ux_fragment);
         arFragment.getArSceneView().getScene().addOnUpdateListener(this::onUpdateFrame);
         Session session = null;
@@ -76,41 +64,25 @@ public class MainActivity extends AppCompatActivity {
         } catch (UnavailableSdkTooOldException e) {
             e.printStackTrace();
         }
-        // IMPORTANT!!!  ArSceneView requires the `LATEST_CAMERA_IMAGE` non-blocking update mode.
+
+        configureSession(session);
+    }
+
+    private void configureSession(Session session) {
         Config config = new Config(session);
         config.setUpdateMode(Config.UpdateMode.LATEST_CAMERA_IMAGE);
         session.configure(config);
         arFragment.getSessionConfiguration(session);
     }
 
-    private void initButtons() {
-        captureGPSButton1 = findViewById(R.id.captureGPSButton1);
-        captureGPSButton2 = findViewById(R.id.captureGPSButton2);
-
-        captureGPSButton1.setEnabled(false);
-        captureGPSButton2.setEnabled(false);
-
-        captureGPSButton1.setOnClickListener(view -> {
-            loc1 = locationManager.GetModelGPSLocation(arrow);
-            if (loc1 != null) {
-                String locationString = loc1.toString();
-                Toast.makeText(this, locationString, Toast.LENGTH_SHORT).show();
-                Log.e(TAG, locationString);
-            }
-        });
-
-        captureGPSButton2.setOnClickListener(view -> {
-            loc2 = locationManager.GetModelGPSLocation(arrow);
-            if (loc2 != null) {
-                String locationString = loc2.toString();
-                //Toast.makeText(this, locationString, Toast.LENGTH_LONG).show();
-                Log.e(TAG, locationString);
-                NumberFormat formatter = new DecimalFormat("#0,00");
-                Log.e(TAG, "Distance: " + LocationManager.getDistanceBetween(loc1, loc2) +  "m") ;
-                Toast.makeText(this, "Distance: " + LocationManager.getDistanceBetween(loc1, loc2) +  "m", Toast.LENGTH_LONG).show();
-                fileManager.getFileOutputStream("");
-            }
-        });
+    private void initMapAndDropdown() {
+        MapReader mp = new MapReader();
+        world = mp.readFile(this);
+        Spinner dropdown = findViewById(R.id.spinner);
+        ArrayAdapter adapter = new ArrayAdapter(this, R.layout.support_simple_spinner_dropdown_item);
+        adapter.add("Kies uw besteming...");
+        adapter.addAll(world.getDestinations());
+        dropdown.setAdapter(adapter);
     }
 
     private void onUpdateFrame(FrameTime frameTime) {
@@ -127,35 +99,16 @@ public class MainActivity extends AppCompatActivity {
                 case PAUSED:
                     String text = "Detected Image " + augmentedImage.getIndex();
                     Toast.makeText(this, text, Toast.LENGTH_LONG).show();
-
                     break;
                 case TRACKING:
                     if (!augmentedImageMap.containsKey(augmentedImage)) {
-                        if(augmentedImage.getIndex() == 0){
-                            captureGPSButton1.setEnabled(true);
-                        }
-
-                        if(augmentedImage.getIndex() == 1){
-                            captureGPSButton2.setEnabled(true);
-                        }
-
                         augmentedImageMap.put(augmentedImage, arrow);
 
                         arrow.renderNode(augmentedImage, arFragment);
-
                     }
                     break;
                 case STOPPED:
                     augmentedImageMap.remove(augmentedImage);
-
-                    if(augmentedImage.getIndex() == 0){
-                        captureGPSButton1.setEnabled(false);
-                    }
-
-                    if(augmentedImage.getIndex() == 1){
-                        captureGPSButton2.setEnabled(false);
-                    }
-
                     break;
             }
         }

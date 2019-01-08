@@ -1,5 +1,4 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -13,33 +12,16 @@
         android:layout_height="wrap_content"
         android:layout_weight="1" />
 
-    <TableLayout
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="0.001"
+        android:layout_weight="0.05"
         android:orientation="horizontal">
 
-        <TableRow
+        <Spinner
+            android:id="@+id/spinner"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="@color/colorPrimary">
-
-            <Button
-                android:id="@+id/captureGPSButton1"
-                style="@android:style/Widget.Holo.Button"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/GPSCaptureButton1" />
-
-            <Button
-                android:id="@+id/captureGPSButton2"
-                style="@android:style/Widget.Holo.Button"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/GPSCaptureButton2" />
-        </TableRow>
-    </TableLayout>
+            android:layout_height="match_parent" />
+    </LinearLayout>
 
 </LinearLayout>
