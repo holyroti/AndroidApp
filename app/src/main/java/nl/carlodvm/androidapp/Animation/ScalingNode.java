@@ -4,13 +4,14 @@ import android.animation.ObjectAnimator;
 import android.content.Context;
 import android.support.annotation.Nullable;
 import android.view.animation.LinearInterpolator;
+
 import com.google.ar.sceneform.FrameTime;
 import com.google.ar.sceneform.math.Vector3;
 import com.google.ar.sceneform.math.Vector3Evaluator;
+
 import nl.carlodvm.androidapp.AugmentedNode;
 
 public class ScalingNode extends AugmentedNode {
-    // We'll use Property Animation to make this node rotate.
     @Nullable
     private ObjectAnimator scalingAnimation = null;
     private float growthPerSecond = 200f;
@@ -19,9 +20,17 @@ public class ScalingNode extends AugmentedNode {
 
     private boolean firstRun = true;
 
-    public ScalingNode(Context context, String path) {
+    private float mScale;
+
+    public ScalingNode(Context context, String path, float scale) {
         super(context, path);
+        mScale = scale;
     }
+
+    public ScalingNode(Context context, String path) {
+        this(context, path, 1.0f);
+    }
+
 
     @Override
     public void onUpdate(FrameTime frameTime) {
@@ -100,11 +109,13 @@ public class ScalingNode extends AugmentedNode {
     /**
      * Returns an ObjectAnimator that makes this node rotate.
      */
-    private static ObjectAnimator createAnimator() {
-        Vector3 scale1 = new Vector3(0.3f, 0.3f, 0.3f);
-        Vector3 scale2 = new Vector3(0.1f, 0.1f, 0.1f);
-        Vector3 scale3 = new Vector3(0.35f, 0.35f, 0.35f);
-        Vector3 scale4 = new Vector3(0.3f, 0.3f, 0.3f);
+    private ObjectAnimator createAnimator() {
+        Vector3 scale1 = new Vector3(mScale, mScale, mScale);
+        float calculatedScale = mScale / 3;
+        Vector3 scale2 = new Vector3(calculatedScale, calculatedScale, calculatedScale);
+        calculatedScale *= 3.5;
+        Vector3 scale3 = new Vector3(calculatedScale, calculatedScale, calculatedScale);
+        Vector3 scale4 = new Vector3(mScale, mScale, mScale);
 
         ObjectAnimator orbitAnimation = new ObjectAnimator();
         orbitAnimation.setObjectValues(scale1, scale2, scale3, scale4);

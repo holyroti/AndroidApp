@@ -3,47 +3,54 @@ package nl.carlodvm.androidapp;
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.content.Context;
-import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
-import android.widget.Button;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
-import com.google.ar.core.*;
+
+import com.google.ar.core.AugmentedImage;
+import com.google.ar.core.Config;
+import com.google.ar.core.Frame;
+import com.google.ar.core.Session;
+import com.google.ar.core.TrackingState;
 import com.google.ar.core.exceptions.UnavailableApkTooOldException;
 import com.google.ar.core.exceptions.UnavailableArcoreNotInstalledException;
 import com.google.ar.core.exceptions.UnavailableSdkTooOldException;
 import com.google.ar.sceneform.FrameTime;
-import nl.carlodvm.androidapp.Core.FileManager;
-import nl.carlodvm.androidapp.Core.LocationManager;
-import nl.carlodvm.androidapp.DataTransferObject.ImageLocationDTO;
-import nl.carlodvm.androidapp.PermissionHelper.CameraPermissionHelper;
+import com.google.ar.sceneform.math.Quaternion;
+import com.google.ar.sceneform.math.Vector3;
 
-import java.io.IOException;
-import java.io.ObjectOutputStream;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+
+import nl.carlodvm.androidapp.Animation.ScalingNode;
+import nl.carlodvm.androidapp.Core.Destination;
+import nl.carlodvm.androidapp.Core.Grid;
+import nl.carlodvm.androidapp.Core.MapReader;
+import nl.carlodvm.androidapp.Core.PathFinder;
+import nl.carlodvm.androidapp.Core.World;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = MainActivity.class.getSimpleName();
     private static final double MIN_OPENGL_VERSION = 3.0;
-    private final String MAPPING_DATA_FILENAME = "mapping.data";
-    private boolean hasCameraPermission = false;
 
     private AugmentedImageFragment arFragment;
-    private LocationManager locationManager;
-    private FileManager fileManager;
-    private AugmentedNode arrow;
-
-    private Button captureGPSButton1;
-    private Button captureGPSButton2;
-
-    private Location loc1;
-    private Location loc2;
+    private ScalingNode arrow;
+    private ScalingNode endNode;
 
     private final Map<AugmentedImage, AugmentedNode> augmentedImageMap = new HashMap<>();
+
+    private World world;
+    private Destination destination;
+    private PathFinder pathFinder;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,19 +59,14 @@ public class MainActivity extends AppCompatActivity {
         if (!checkIsSupportedDeviceOrFinish(this))
             return;
 
-        if (!CameraPermissionHelper.hasCameraPermission(this)) {
-            CameraPermissionHelper.launchPermissionSettings(this);
-            finish();
-        }
-
         setContentView(R.layout.activity_ux);
 
-        locationManager = new LocationManager(this, this);
-        fileManager = new FileManager(this);
+        initMapAndDropdown();
 
-        initButtons();
+        pathFinder = new PathFinder();
 
-        arrow = new AugmentedNode(this, "arrow.sfb");
+        arrow = new ScalingNode(this, "arrow.sfb", 2.5f);
+        endNode = new ScalingNode(this, "flagpole.sfb", 0.3f);
         arFragment = (AugmentedImageFragment) getSupportFragmentManager().findFragmentById(R.id.ux_fragment);
         arFragment.getArSceneView().getScene().addOnUpdateListener(this::onUpdateFrame);
         Session session = null;
@@ -77,48 +79,38 @@ public class MainActivity extends AppCompatActivity {
         } catch (UnavailableSdkTooOldException e) {
             e.printStackTrace();
         }
-        // IMPORTANT!!!  ArSceneView requires the `LATEST_CAMERA_IMAGE` non-blocking update mode.
+
+        configureSession(session);
+    }
+
+    private void configureSession(Session session) {
         Config config = new Config(session);
         config.setUpdateMode(Config.UpdateMode.LATEST_CAMERA_IMAGE);
         session.configure(config);
         arFragment.getSessionConfiguration(session);
     }
 
-    private void initButtons() {
-        captureGPSButton1 = findViewById(R.id.captureGPSButton1);
-        captureGPSButton2 = findViewById(R.id.captureGPSButton2);
-
-        captureGPSButton1.setEnabled(false);
-        captureGPSButton2.setEnabled(false);
-
-        captureGPSButton1.setOnClickListener(view -> {
-            loc1 = locationManager.GetModelGPSLocation(arrow);
-            if (loc1 != null) {
-                String locationString = loc1.toString();
-                Toast.makeText(this, locationString, Toast.LENGTH_SHORT).show();
-                Log.e(TAG, locationString);
-            }
-        });
-
-        captureGPSButton2.setOnClickListener(view -> {
-            loc2 = locationManager.GetModelGPSLocation(arrow);
-            if (loc2 != null) {
-                String locationString = loc2.toString();
-                //Toast.makeText(this, locationString, Toast.LENGTH_LONG).show();
-                Log.e(TAG, locationString);
-                String distance = LocationManager.getDistanceBetween(loc1, loc2) + "m";
-                Log.e(TAG, "Distance: " + distance);
-                Toast.makeText(this, "Distance: " + distance, Toast.LENGTH_LONG).show();
-                if (!fileManager.fileExists(MAPPING_DATA_FILENAME))
-                    fileManager.createFile(MAPPING_DATA_FILENAME);
-                ObjectOutputStream objS = fileManager.getObjectOutputStream(MAPPING_DATA_FILENAME);
-                try {
-                    objS.writeObject(new ImageLocationDTO(loc2, arrow.getImage().getIndex()));
-                    objS.flush();
-                    objS.close();
-                } catch (IOException e) {
-                    Log.e(TAG, "Could not write to file");
+    private void initMapAndDropdown() {
+        MapReader mp = new MapReader();
+        world = mp.readFile(this);
+        Spinner dropdown = findViewById(R.id.spinner);
+        ArrayAdapter adapter = new ArrayAdapter(this, R.layout.support_simple_spinner_dropdown_item);
+        adapter.add("Kies uw bestemming...");
+        adapter.addAll(world.getDestinations());
+        dropdown.setAdapter(adapter);
+        dropdown.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                Spinner spinner = (Spinner) parent;
+                //Position == 0 is default hinted message
+                if (position != 0) {
+                    destination = (Destination) spinner.getItemAtPosition(position);
                 }
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+
             }
         });
     }
@@ -135,37 +127,48 @@ public class MainActivity extends AppCompatActivity {
         for (AugmentedImage augmentedImage : updatedAugmentedImages) {
             switch (augmentedImage.getTrackingState()) {
                 case PAUSED:
-                    //String text = "Detected Image " + augmentedImage.getIndex();
-                    //Toast.makeText(this, text, Toast.LENGTH_LONG).show();
-
+                    String text = "Detected Image " + augmentedImage.getIndex();
+                    Toast.makeText(this, text, Toast.LENGTH_LONG).show();
                     break;
                 case TRACKING:
                     if (!augmentedImageMap.containsKey(augmentedImage)) {
-                        if(augmentedImage.getIndex() == 0){
-                            captureGPSButton1.setEnabled(true);
-                        }
-
-                        if(augmentedImage.getIndex() == 1){
-                            captureGPSButton2.setEnabled(true);
-                        }
-
                         augmentedImageMap.put(augmentedImage, arrow);
+                        Grid begin = world.getDestination(augmentedImage.getIndex());
 
-                        arrow.renderNode(augmentedImage, arFragment);
+                        if (destination != null && world != null) {
+                            if (begin != null && destination != begin) {
+                                arrow.setParent(null);
+                                List<Grid> path = pathFinder.calculateShortestPath(world, world.getGrid(begin.getX(), begin.getY()), world.getGrid(destination.getX(), destination.getY()));
+                                Destination closestDst = pathFinder.getClosestDesination(world, path);
+                                List<Destination> dsts = pathFinder.getDesinationsFromPath(world, path);
+                                StringBuilder sb = new StringBuilder();
+                                dsts.stream().forEachOrdered(sb::append);
+                                int xDir = closestDst.getX() - begin.getX(), yDir = closestDst.getY() - begin.getY();
+                                double yAngle = xDir != 0 ? Math.toDegrees(Math.tan(yDir / xDir)) :
+                                        ( yDir > 0 ?  Math.toDegrees((3*Math.PI) / 2) : Math.toDegrees(Math.PI / 2));
+                                arrow.renderNode(augmentedImage, arFragment, (node) -> node.setWorldRotation(Quaternion.multiply(Quaternion.axisAngle(new Vector3(1.0f, 0.0f, 0.0f), 90f)
+                                        , Quaternion.axisAngle(new Vector3(0f, 1f, 0f), (float) yAngle))));
 
+                                TextView textView = findViewById(R.id.textView);
+                                String distanceString = "~" + path.size() * Grid.GridResolution + "m";
+                                textView.setText(distanceString + "\n" + sb.toString());
+                                textView.setBackgroundResource(R.color.colorPrimary);
+
+                            } else {
+                                //Toast.makeText(this, "You have reached your destination.", Toast.LENGTH_LONG).show();
+                                arrow.setParent(null);
+                                endNode.renderNode(augmentedImage, arFragment, (node) -> node.setLocalRotation(
+                                        Quaternion.multiply(Quaternion.axisAngle(new Vector3(1.0f, 0.0f, 0.0f), 90f)
+                                                , Quaternion.axisAngle(new Vector3(0.0f, 1.0f, 0.0f), -90))));
+                                TextView textView = findViewById(R.id.textView);
+                                textView.setBackgroundResource(R.color.colorPrimary);
+                                textView.setText("0m");
+                            }
+                        }
                     }
                     break;
                 case STOPPED:
                     augmentedImageMap.remove(augmentedImage);
-
-                    if(augmentedImage.getIndex() == 0){
-                        captureGPSButton1.setEnabled(false);
-                    }
-
-                    if(augmentedImage.getIndex() == 1){
-                        captureGPSButton2.setEnabled(false);
-                    }
-
                     break;
             }
         }
