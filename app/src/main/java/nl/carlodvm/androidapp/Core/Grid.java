@@ -26,6 +26,10 @@ public class Grid {
         return x;
     }
 
+    public void setPassable(boolean passable) {
+        this.passable = passable;
+    }
+
     public boolean isPassable() {
         return passable;
     }

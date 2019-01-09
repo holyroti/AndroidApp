@@ -92,23 +92,23 @@ public class MapReader {
     }
 
     private void createDestination(String input, int lineCount) {
-        int y = allY + 1 - lineCount;
+        int y = allY - lineCount;
         int x;
         String[] param = input.split(",");
-        destinations.add(new Destination(Integer.parseInt(param[0]), Integer.parseInt(param[1]), param[2]));
+        destinations.add(new Destination(Integer.parseInt(param[0]) - 1, Integer.parseInt(param[1]) - 1, param[2], Integer.parseInt(param[3])));
     }
 
     private void createGrids(String nextLine, int lineCount) {
-        int y = allY + 1 - lineCount;
+        int y = allY - lineCount;
         int x;
-        for (int i = 1; i < nextLine.length() + 1; i++) {
+        for (int i = 0; i < nextLine.length(); i++) {
             x = i;
 
-            if (nextLine.charAt(i - 1) == 'N') {
+            if (nextLine.charAt(i) == 'N') {
                 GridList.add(new Grid(x, y, false));
             }
 
-            if (nextLine.charAt(i - 1) == 'W') {
+            if (nextLine.charAt(i) == 'W') {
                 GridList.add(new Grid(x, y, true));
             }
         }

@@ -39,8 +39,17 @@ public class World {
 
     public Grid getGrid(int x, int y) {
         List<Grid> grids = etage.stream().filter((grid) -> grid.getX() == x && grid.getY() == y).collect(Collectors.toList());
-        if (grids.size() != 1)
+        if (grids.size() > 1)
             throw new IllegalStateException("There should not be multiple grids on the same coordinate.");
+        return grids.get(0);
+    }
+
+    public Grid getDestination(int imageId) {
+        List<Grid> grids = destinations.stream().filter((grid) -> grid.getImageIndex() == imageId).collect(Collectors.toList());
+        if (grids.size() > 1)
+            throw new IllegalStateException("There should not be multiple grids with the same imageID.");
+        if (grids.size() == 0)
+            return null;
         return grids.get(0);
     }
 

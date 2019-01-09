@@ -17,6 +17,8 @@ public class PathFinder {
     public List<Grid> calculateShortestPath(World kaart, Grid start, Grid end) {
         Grid startNode = start;
         Grid endNode = end;
+        startNode.setPassable(true);
+        end.setPassable(true);
 
         ArrayList<Grid> open = new ArrayList<>();
         HashSet<Grid> closed = new HashSet<>();
@@ -47,7 +49,9 @@ public class PathFinder {
                 if (!neighbour.isPassable() || closed.contains(neighbour))
                     continue;
 
-                double newMovementCostToNeighbour = map.get(current).getgCost() + manhattanDistance(current, neighbour);
+                Cost currentCost = map.get(current);
+
+                double newMovementCostToNeighbour = currentCost.getgCost() + manhattanDistance(current, neighbour);
 
                 if (newMovementCostToNeighbour < map.get(neighbour).getgCost() || !open.contains(neighbour)) {
                     Cost neighbourCost = map.get(neighbour);
@@ -62,6 +66,12 @@ public class PathFinder {
 
         }
         return null;
+    }
+
+    public Destination getClosestDesination(World world, List<Grid> worldGridPath) {
+        return world.getDestinations().stream().filter(x -> worldGridPath.stream().anyMatch(y -> y.getX() == x.getX() && y.getY() == x.getY()))
+                .skip(1).findFirst().get();
+
     }
 
     private List<Grid> track(Grid start, Grid end) {

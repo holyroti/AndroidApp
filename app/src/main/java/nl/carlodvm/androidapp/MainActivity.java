@@ -7,8 +7,11 @@ import android.os.Build;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.ar.core.AugmentedImage;
@@ -20,13 +23,19 @@ import com.google.ar.core.exceptions.UnavailableApkTooOldException;
 import com.google.ar.core.exceptions.UnavailableArcoreNotInstalledException;
 import com.google.ar.core.exceptions.UnavailableSdkTooOldException;
 import com.google.ar.sceneform.FrameTime;
+import com.google.ar.sceneform.math.Quaternion;
+import com.google.ar.sceneform.math.Vector3;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import nl.carlodvm.androidapp.Animation.ScalingNode;
+import nl.carlodvm.androidapp.Core.Destination;
+import nl.carlodvm.androidapp.Core.Grid;
 import nl.carlodvm.androidapp.Core.MapReader;
+import nl.carlodvm.androidapp.Core.PathFinder;
 import nl.carlodvm.androidapp.Core.World;
 
 public class MainActivity extends AppCompatActivity {
@@ -35,10 +44,13 @@ public class MainActivity extends AppCompatActivity {
 
     private AugmentedImageFragment arFragment;
     private ScalingNode arrow;
+    private ScalingNode endNode;
 
     private final Map<AugmentedImage, AugmentedNode> augmentedImageMap = new HashMap<>();
 
     private World world;
+    private Destination destination;
+    private PathFinder pathFinder;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,7 +63,10 @@ public class MainActivity extends AppCompatActivity {
 
         initMapAndDropdown();
 
+        pathFinder = new PathFinder();
+
         arrow = new ScalingNode(this, "arrow.sfb", 2.5f);
+        endNode = new ScalingNode(this, "flagpole.sfb", 0.3f);
         arFragment = (AugmentedImageFragment) getSupportFragmentManager().findFragmentById(R.id.ux_fragment);
         arFragment.getArSceneView().getScene().addOnUpdateListener(this::onUpdateFrame);
         Session session = null;
@@ -80,9 +95,24 @@ public class MainActivity extends AppCompatActivity {
         world = mp.readFile(this);
         Spinner dropdown = findViewById(R.id.spinner);
         ArrayAdapter adapter = new ArrayAdapter(this, R.layout.support_simple_spinner_dropdown_item);
-        adapter.add("Kies uw besteming...");
+        adapter.add("Kies uw bestemming...");
         adapter.addAll(world.getDestinations());
         dropdown.setAdapter(adapter);
+        dropdown.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                Spinner spinner = (Spinner) parent;
+                //Position == 0 is default hinted message
+                if (position != 0) {
+                    destination = (Destination) spinner.getItemAtPosition(position);
+                }
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+
+            }
+        });
     }
 
     private void onUpdateFrame(FrameTime frameTime) {
@@ -103,8 +133,31 @@ public class MainActivity extends AppCompatActivity {
                 case TRACKING:
                     if (!augmentedImageMap.containsKey(augmentedImage)) {
                         augmentedImageMap.put(augmentedImage, arrow);
+                        Grid begin = world.getDestination(augmentedImage.getIndex());
 
-                        arrow.renderNode(augmentedImage, arFragment);
+                        if (destination != null && world != null) {
+                            if (begin != null && destination != begin) {
+                                List<Grid> path = pathFinder.calculateShortestPath(world, world.getGrid(begin.getX(), begin.getY()), world.getGrid(destination.getX(), destination.getY()));
+                                Destination closestDst = pathFinder.getClosestDesination(world, path);
+
+                                int xDir = closestDst.getX() - begin.getX(), yDir = closestDst.getY() - begin.getY();
+                                double yAngle = Math.toDegrees(Math.tan(yDir / xDir));
+                                arrow.renderNode(augmentedImage, arFragment, (node) -> node.setWorldRotation(Quaternion.multiply(Quaternion.axisAngle(new Vector3(1.0f, 0.0f, 0.0f), 90f)
+                                        , Quaternion.axisAngle(new Vector3(0f, 1f, 0f), (float) yAngle))));
+
+                                TextView textView = findViewById(R.id.textView);
+                                textView.setText("~" + path.size() * Grid.GridResolution + "m");
+
+                            } else {
+                                //Toast.makeText(this, "You have reached your destination.", Toast.LENGTH_LONG).show();
+                                arrow.setParent(null);
+                                endNode.renderNode(augmentedImage, arFragment, (node) -> node.setLocalRotation(
+                                        Quaternion.multiply(Quaternion.axisAngle(new Vector3(1.0f, 0.0f, 0.0f), 90f)
+                                                , Quaternion.axisAngle(new Vector3(0.0f, 1.0f, 0.0f), -90))));
+                                TextView textView = findViewById(R.id.textView);
+                                textView.setText("0m");
+                            }
+                        }
                     }
                     break;
                 case STOPPED:
