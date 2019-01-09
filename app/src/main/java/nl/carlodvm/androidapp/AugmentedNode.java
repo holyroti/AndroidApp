@@ -20,6 +20,7 @@ public class AugmentedNode extends AnchorNode {
     private Renderable model;
     private TransformableNode TransformableModel;
     private AugmentedImage image;
+    private TransformableNode transfomNode;
 
     public AugmentedNode(Context context, String path) {
         ModelRenderable
@@ -40,7 +41,7 @@ public class AugmentedNode extends AnchorNode {
 
         this.image = image;
 
-        TransformableNode transfomNode = new TransformableNode(arFragment.getTransformationSystem());
+        setTransformableNode(new TransformableNode(arFragment.getTransformationSystem()));
         config.accept(transfomNode);
         transfomNode.getScaleController().setEnabled(false);
         transfomNode.getRotationController().setEnabled(false);
@@ -48,6 +49,17 @@ public class AugmentedNode extends AnchorNode {
         transfomNode.setParent(this);
         transfomNode.setRenderable(model);
         transfomNode.select();
+    }
+
+    private void setTransformableNode(TransformableNode transfomNode) {
+        if(this.transfomNode == null) {
+            this.transfomNode = transfomNode;
+        }else{
+            this.transfomNode.setRenderable(null);
+            this.transfomNode.setParent(null);
+            this.transfomNode.setEnabled(false);
+            this.transfomNode = transfomNode;
+        }
     }
 
     public AugmentedImage getImage() {

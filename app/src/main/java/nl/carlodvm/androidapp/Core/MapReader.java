@@ -92,8 +92,6 @@ public class MapReader {
     }
 
     private void createDestination(String input, int lineCount) {
-        int y = allY - lineCount;
-        int x;
         String[] param = input.split(",");
         destinations.add(new Destination(Integer.parseInt(param[0]) - 1, Integer.parseInt(param[1]) - 1, param[2], Integer.parseInt(param[3])));
     }

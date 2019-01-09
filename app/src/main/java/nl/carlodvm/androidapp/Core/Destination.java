@@ -16,6 +16,6 @@ public class Destination extends Grid {
 
     @Override
     public String toString() {
-        return name;
+        return name + " (x:" + (getX() + 1)  + ", y:" + (getY() + 1) + ")";
     }
 }

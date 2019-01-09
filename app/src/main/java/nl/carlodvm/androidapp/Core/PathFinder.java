@@ -6,6 +6,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 public class PathFinder {
     private final Map<Grid, Cost> map;
@@ -69,8 +71,12 @@ public class PathFinder {
     }
 
     public Destination getClosestDesination(World world, List<Grid> worldGridPath) {
-        return world.getDestinations().stream().filter(x -> worldGridPath.stream().anyMatch(y -> y.getX() == x.getX() && y.getY() == x.getY()))
-                .skip(1).findFirst().get();
+        return world.getDestinations().stream().filter(x -> worldGridPath.stream().skip(1).anyMatch(y -> y.getX() == x.getX() && y.getY() == x.getY()))
+                .findFirst().get();
+    }
+
+    public List<Destination> getDesinationsFromPath(World world, List<Grid> worldGridPath) {
+        return worldGridPath.stream().map(world::getDestination).collect(Collectors.toList());
 
     }
 

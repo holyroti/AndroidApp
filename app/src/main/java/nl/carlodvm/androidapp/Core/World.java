@@ -39,8 +39,7 @@ public class World {
 
     public Grid getGrid(int x, int y) {
         List<Grid> grids = etage.stream().filter((grid) -> grid.getX() == x && grid.getY() == y).collect(Collectors.toList());
-        if (grids.size() > 1)
-            throw new IllegalStateException("There should not be multiple grids on the same coordinate.");
+        
         return grids.get(0);
     }
 
@@ -50,6 +49,13 @@ public class World {
             throw new IllegalStateException("There should not be multiple grids with the same imageID.");
         if (grids.size() == 0)
             return null;
+        return grids.get(0);
+    }
+
+    public Destination getDestination(Grid dest) {
+        List<Destination> grids = destinations.stream().filter((grid) -> grid.getX() == dest.getX() && grid.getY() == dest.getY()).collect(Collectors.toList());
+        if (grids.size() > 1)
+            throw new IllegalStateException("There should not be multiple grids on the same coordinate.");
         return grids.get(0);
     }
 

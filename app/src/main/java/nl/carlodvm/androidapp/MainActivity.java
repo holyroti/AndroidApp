@@ -142,19 +142,25 @@ public class MainActivity extends AppCompatActivity {
 
                         if (destination != null && world != null) {
                             if (begin != null && destination != begin) {
+                                arrow.setParent(null);
                                 sensorManager.updateOrientationAngles();
                                 float angleBetweenDeviceAndNorth = sensorManager.getmOrientationAngles()[0];
                                 float dxZ = sensorManager.getAccelerometerReading()[2];
                                 List<Grid> path = pathFinder.calculateShortestPath(world, world.getGrid(begin.getX(), begin.getY()), world.getGrid(destination.getX(), destination.getY()));
                                 Destination closestDst = pathFinder.getClosestDesination(world, path);
-
+                                List<Destination> dsts = pathFinder.getDesinationsFromPath(world, path);
+                                StringBuilder sb = new StringBuilder();
+                                dsts.stream().forEachOrdered(sb::append);
                                 int xDir = closestDst.getX() - begin.getX(), yDir = closestDst.getY() - begin.getY();
-                                double yAngle = Math.toDegrees(Math.tan(yDir / xDir));
+                                double yAngle = xDir != 0 ? Math.toDegrees(Math.tan(yDir / xDir)) :
+                                        ( yDir > 0 ?  Math.toDegrees((3*Math.PI) / 2) : Math.toDegrees(Math.PI / 2));
                                 arrow.renderNode(augmentedImage, arFragment, (node) -> node.setWorldRotation(Quaternion.multiply(Quaternion.axisAngle(new Vector3(1.0f, 0.0f, 0.0f), 90f)
                                         , Quaternion.axisAngle(new Vector3(0f, 1f, 0f), (float) yAngle))));
 
                                 TextView textView = findViewById(R.id.textView);
-                                textView.setText("~" + path.size() * Grid.GridResolution + "m");
+                                String distanceString = "~" + path.size() * Grid.GridResolution + "m";
+                                textView.setText(distanceString + "\n" + sb.toString());
+                                textView.setBackgroundResource(R.color.colorPrimary);
 
                             } else {
                                 //Toast.makeText(this, "You have reached your destination.", Toast.LENGTH_LONG).show();
@@ -163,6 +169,7 @@ public class MainActivity extends AppCompatActivity {
                                         Quaternion.multiply(Quaternion.axisAngle(new Vector3(1.0f, 0.0f, 0.0f), 90f)
                                                 , Quaternion.axisAngle(new Vector3(0.0f, 1.0f, 0.0f), -90))));
                                 TextView textView = findViewById(R.id.textView);
+                                textView.setBackgroundResource(R.color.colorPrimary);
                                 textView.setText("0m");
                             }
                         }
