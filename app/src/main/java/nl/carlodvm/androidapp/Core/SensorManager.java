@@ -53,4 +53,8 @@ public class SensorManager implements SensorEventListener {
     public float[] getmOrientationAngles() {
         return mOrientationAngles;
     }
+
+    public float[] getAccelerometerReading() {
+        return m_AccelerometerReading;
+    }
 }

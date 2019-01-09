@@ -36,6 +36,7 @@ import nl.carlodvm.androidapp.Core.Destination;
 import nl.carlodvm.androidapp.Core.Grid;
 import nl.carlodvm.androidapp.Core.MapReader;
 import nl.carlodvm.androidapp.Core.PathFinder;
+import nl.carlodvm.androidapp.Core.SensorManager;
 import nl.carlodvm.androidapp.Core.World;
 
 public class MainActivity extends AppCompatActivity {
@@ -52,6 +53,8 @@ public class MainActivity extends AppCompatActivity {
     private Destination destination;
     private PathFinder pathFinder;
 
+    private SensorManager sensorManager;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -64,6 +67,8 @@ public class MainActivity extends AppCompatActivity {
         initMapAndDropdown();
 
         pathFinder = new PathFinder();
+
+        sensorManager = new SensorManager(this);
 
         arrow = new ScalingNode(this, "arrow.sfb", 2.5f);
         endNode = new ScalingNode(this, "flagpole.sfb", 0.3f);
@@ -137,6 +142,9 @@ public class MainActivity extends AppCompatActivity {
 
                         if (destination != null && world != null) {
                             if (begin != null && destination != begin) {
+                                sensorManager.updateOrientationAngles();
+                                float angleBetweenDeviceAndNorth = sensorManager.getmOrientationAngles()[0];
+                                float dxZ = sensorManager.getAccelerometerReading()[2];
                                 List<Grid> path = pathFinder.calculateShortestPath(world, world.getGrid(begin.getX(), begin.getY()), world.getGrid(destination.getX(), destination.getY()));
                                 Destination closestDst = pathFinder.getClosestDesination(world, path);
 
