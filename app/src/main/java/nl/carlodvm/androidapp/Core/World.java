@@ -56,6 +56,8 @@ public class World {
         List<Destination> grids = destinations.stream().filter((grid) -> grid.getX() == dest.getX() && grid.getY() == dest.getY()).collect(Collectors.toList());
         if (grids.size() > 1)
             throw new IllegalStateException("There should not be multiple grids on the same coordinate.");
+        if (grids.size() == 0)
+            return null;
         return grids.get(0);
     }
 

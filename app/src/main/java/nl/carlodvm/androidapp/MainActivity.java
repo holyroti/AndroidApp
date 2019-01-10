@@ -3,6 +3,7 @@ package nl.carlodvm.androidapp;
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
@@ -33,11 +34,13 @@ import java.util.Map;
 
 import nl.carlodvm.androidapp.Animation.ScalingNode;
 import nl.carlodvm.androidapp.Core.Destination;
+import nl.carlodvm.androidapp.Core.DestinationBitmapReader;
 import nl.carlodvm.androidapp.Core.Grid;
 import nl.carlodvm.androidapp.Core.MapReader;
 import nl.carlodvm.androidapp.Core.PathFinder;
 import nl.carlodvm.androidapp.Core.SensorManager;
 import nl.carlodvm.androidapp.Core.World;
+import nl.carlodvm.androidapp.View.PathView;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = MainActivity.class.getSimpleName();
@@ -55,6 +58,9 @@ public class MainActivity extends AppCompatActivity {
 
     private SensorManager sensorManager;
 
+    private PathView pathView;
+    private Map<Integer, Bitmap> imageMap;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -67,6 +73,9 @@ public class MainActivity extends AppCompatActivity {
         initMapAndDropdown();
 
         pathFinder = new PathFinder();
+
+        pathView = findViewById(R.id.PathView);
+        imageMap = new DestinationBitmapReader(this).ReadBitmaps();
 
         sensorManager = new SensorManager(this);
 
@@ -103,7 +112,11 @@ public class MainActivity extends AppCompatActivity {
         adapter.add("Kies uw bestemming...");
         adapter.addAll(world.getDestinations());
         dropdown.setAdapter(adapter);
-        dropdown.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+        dropdown.setOnItemSelectedListener(onDropdownSelect());
+    }
+
+    private AdapterView.OnItemSelectedListener onDropdownSelect() {
+        return new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 Spinner spinner = (Spinner) parent;
@@ -117,7 +130,7 @@ public class MainActivity extends AppCompatActivity {
             public void onNothingSelected(AdapterView<?> parent) {
 
             }
-        });
+        };
     }
 
     private void onUpdateFrame(FrameTime frameTime) {
@@ -143,14 +156,16 @@ public class MainActivity extends AppCompatActivity {
                         if (destination != null && world != null) {
                             if (begin != null && destination != begin) {
                                 arrow.setParent(null);
-                                sensorManager.updateOrientationAngles();
-                                float angleBetweenDeviceAndNorth = sensorManager.getmOrientationAngles()[0];
-                                float dxZ = sensorManager.getAccelerometerReading()[2];
+                                endNode.setParent(null);
+                                //sensorManager.updateOrientationAngles();
+                                //float angleBetweenDeviceAndNorth = sensorManager.getmOrientationAngles()[0];
+                                //float dxZ = sensorManager.getAccelerometerReading()[2];
                                 List<Grid> path = pathFinder.calculateShortestPath(world, world.getGrid(begin.getX(), begin.getY()), world.getGrid(destination.getX(), destination.getY()));
-                                Destination closestDst = pathFinder.getClosestDesination(world, path);
-                                List<Destination> dsts = pathFinder.getDesinationsFromPath(world, path);
-                                StringBuilder sb = new StringBuilder();
-                                dsts.stream().forEachOrdered(sb::append);
+                                Destination closestDst = pathFinder.getClosestDestination(world, path);
+                                List<Destination> dsts = pathFinder.getDestinationsFromPath(world, path);
+                                pathView.setNavigationPoints(dsts, imageMap);
+                                //StringBuilder sb = new StringBuilder();
+                                //dsts.stream().forEachOrdered(sb::append);
                                 int xDir = closestDst.getX() - begin.getX(), yDir = closestDst.getY() - begin.getY();
                                 double yAngle = xDir != 0 ? Math.toDegrees(Math.tan(yDir / xDir)) :
                                         ( yDir > 0 ?  Math.toDegrees((3*Math.PI) / 2) : Math.toDegrees(Math.PI / 2));
@@ -159,12 +174,14 @@ public class MainActivity extends AppCompatActivity {
 
                                 TextView textView = findViewById(R.id.textView);
                                 String distanceString = "~" + path.size() * Grid.GridResolution + "m";
-                                textView.setText(distanceString + "\n" + sb.toString());
+                                //textView.setText(distanceString + "\n" + sb.toString());
+                                textView.setText(distanceString);
                                 textView.setBackgroundResource(R.color.colorPrimary);
 
                             } else {
                                 //Toast.makeText(this, "You have reached your destination.", Toast.LENGTH_LONG).show();
                                 arrow.setParent(null);
+                                endNode.setParent(null);
                                 endNode.renderNode(augmentedImage, arFragment, (node) -> node.setLocalRotation(
                                         Quaternion.multiply(Quaternion.axisAngle(new Vector3(1.0f, 0.0f, 0.0f), 90f)
                                                 , Quaternion.axisAngle(new Vector3(0.0f, 1.0f, 0.0f), -90))));
