@@ -1,3 +1,7 @@
 <resources>
-    <string name="app_name">AndroidApp</string>
+    <string name="app_name">Navigatie</string>
+    <string name="GPSCaptureButton2">Capture GPS 2</string>
+    <string name="GPSCaptureButton1">Capture GPS 1</string>
+    <string name="FileCreationErrorMessage">Can\'t create file.</string>
+    <string name="FileNotFoundErrorMessage">File does not exist.</string>
 </resources>

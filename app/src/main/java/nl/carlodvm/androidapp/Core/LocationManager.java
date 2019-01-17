@@ -8,9 +8,7 @@ import android.location.LocationListener;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.Toast;
-
 import com.google.ar.core.Pose;
-
 import nl.carlodvm.androidapp.AugmentedNode;
 import nl.carlodvm.androidapp.PermissionHelper.LocationPermissionHelper;
 
@@ -42,7 +40,7 @@ public class LocationManager implements LocationListener {
             checkIfAvailable(context, activity);
 
             m_locationManager.requestLocationUpdates(isGPSEnabled ? android.location.LocationManager.GPS_PROVIDER : android.location.LocationManager.NETWORK_PROVIDER
-                    , 1000, 2, this);
+                    , 500, 2, this);
         }
     }
 
