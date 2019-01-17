@@ -68,6 +68,8 @@ public class MainActivity extends AppCompatActivity {
         if (!checkIsSupportedDeviceOrFinish(this))
             return;
 
+        requestWindowFeature(R.attr.windowNoTitle);
+
         setContentView(R.layout.activity_ux);
 
         initMapAndDropdown();
